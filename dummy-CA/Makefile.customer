@@ -1,0 +1,21 @@
+PRIVKEY := keys/root_priv.pem
+PUBKEY := keys/root_pub.pem
+ROOT_PUBKEY := root_pubkey.pem
+
+$(PRIVKEY) $(PUBKEY):
+	@echo "\n"
+	@echo "CA keys does not exist"
+	@echo "You can create them manually by running"
+	@echo "command \"make keys\" in the dummy-CA directory"
+	@echo "(Normally only the CA owner can create them)"
+	@echo "\n"
+	@exit 1
+
+get_rootkey: | $(PUBKEY)
+	cp $(PUBKEY) $(ROOT_PUBKEY)
+
+sign_guest_cert: | $(PRIVKEY)
+	./sign_guest_cert.sh -i $(CERT_REQ_FILE) \
+	-o $(CERT_FILE)
+
+.PHONY: get_rootkey sign_guest_cert keys

@@ -1,0 +1,24 @@
+ENTRY(_start)
+MEMORY
+{
+	mem : ORIGIN = 0x7FC00000, LENGTH = 0x60000
+}
+
+SECTIONS
+{
+	. = 0x7FC00000;
+	.start . : { start.o(.text) } > mem
+	.text : ALIGN(8) { *(.text) } > mem
+	.bss  : ALIGN(8) { *(.bss COMMON) } > mem
+	.vectors :  ALIGN(11) { vectors.o } > mem
+
+	.heap (NOLOAD) : ALIGN(4096) {} > mem
+	.stack (NOLOAD) : ALIGN(4096) {} > mem
+	_stack_top = .;
+
+	xtables (NOLOAD) : ALIGN(16) {
+		__XLAT_START__ = .;
+		__XLAT_END__ = .;
+	} > mem
+
+}
