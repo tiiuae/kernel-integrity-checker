@@ -1,21 +1,22 @@
-export CC=aarch64-linux-gnu-gcc
-export ARCH=arm64
+BUILDTOOLS := /home/mt/work/pkvm-aarch64/buildtools
 
-CROSS_COMPILE := aarch64-linux-gnu-
-CC := $(CROSS_COMPILE)gcc
+export ARCH=arm64
+export CROSS_COMPILE := $(BUILDTOOLS)/usr/bin/aarch64-linux-gnu-
+
+export CC := $(CROSS_COMPILE)gcc
 LD := $(CROSS_COMPILE)ld
 SUBDIRS := mbedtls aarch64 aarch64/stdlib
 
 OBJCOPY := $(CROSS_COMPILE)objcopy
-MBEDTLS_CFLAGS := '-O2 -DMBEDTLS_USER_CONFIG_FILE=\"$(PWD)/mbedconfig.h\"'
-LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L/usr/lib/gcc-cross/aarch64-linux-gnu/11 --nostdlib
-LDLIBS :=  -lgcc -lmbedcrypto -lstdlib -larch -lgcc
+MBEDTLS_CFLAGS := '-O2 -DMBEDTLS_USER_CONFIG_FILE=\"$(PWD)/mbedconfig.h\"  -march=armv8-a --sysroot=$(BUILDTOOLS) --no-sysroot-suffix'
+LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L$(BUILDTOOLS)/usr/lib/gcc/aarch64-linux-gnu/11.4.0/
+LDLIBS :=  -lmbedcrypto -lstdlib -larch -lgcc
 vecho = @echo
 DIR := $(shell pwd)
 
 OBJS := ic_loader.o heap.o
-CFLAGS := -march=armv8-a -Imbedtls/include -Iaarch64 -g -ffreestanding
-PROG = ic_loader
+CFLAGS := -march=armv8-a -Imbedtls/include -Iaarch64 -g -ffreestanding --sysroot=$(BUILDTOOLS) --no-sysroot-suffix
+PROG := ic_loader
 
 GUEST_IMAGE_DIR ?= .
 KEYS_DIR := keys
@@ -41,7 +42,7 @@ $(PROG).bin: $(PROG)
 	$(OBJCOPY) -O binary $(PROG) $(PROG).bin
 libs:
 	make CFLAGS=$(MBEDTLS_CFLAGS) -C mbedtls lib
-	make -C aarch64
+	make CFLAGS='$(CFLAGS)' -C aarch64
 	make -C aarch64/stdlib
 
 $(PROG): $(OBJS) | libs

@@ -113,19 +113,14 @@ int image_check_init(gad_t *gad)
 	int ret;
 	int i;
 
-	if (gad->macig != GAD_MAGIC) {
+	if (gad->magic != GAD_MAGIC) {
 		printf("No signature magic\n");
 		return KIC_FAILED;
 	}
 
-	for (i = 0; i < KIC_IMAGE_COUNT; i++)
-		if (gad->images[i].size > KIC_MAX_IMAGE_SIZE) {
-			printf("Too big image to check\n");
-			return KIC_FAILED;
-		}
-
 	/* Check guest certificate */
 	ret = calc_hash(hash, &gad->cert, offsetof(guest_cert_t, signature));
+
 	if (ret != MBEDTLS_EXIT_SUCCESS)	{
 		printf("mbedtls_sha256_update_ret %d", ret);
 		return KIC_FAILED;
@@ -211,7 +206,7 @@ void ic_loader(uint64_t sp[], uint64_t image_addr)
 
 	for (i = 0; i < KIC_IMAGE_COUNT; i++) {
 		img = &gad.images[i];
-		if (img->macig) {
+		if (img->magic) {
 			len = ROUND_UP(img->size, sizeof(uint64_t));
 			if ((len == 0) || (len > KIC_MAX_IMAGE_SIZE))
 				abort();
@@ -220,7 +215,7 @@ void ic_loader(uint64_t sp[], uint64_t image_addr)
 				/* x0 contains the load address */
 				laddr[i] = sp[0];
 			} else {
-				if (img->macig == KERNEL_MAGIC) {
+				if (img->magic == KERNEL_MAGIC) {
 					laddr[i] = image_addr;
 				} else
 					laddr[i] = img->load_addr;
@@ -239,7 +234,7 @@ void ic_loader(uint64_t sp[], uint64_t image_addr)
 					abort();
 
 			printf("copy '%s image' %d bytes from 0x%x to 0x%x\n",
-				get_image_name(img->macig),
+				get_image_name(img->magic),
 				len,
 				image_addr + img->offset,
 				laddr[i]);
@@ -249,7 +244,7 @@ void ic_loader(uint64_t sp[], uint64_t image_addr)
 	}
 
 	for (i = 0; i < KIC_IMAGE_COUNT; i++) {
-		if (gad.images[i].macig == 0)
+		if (gad.images[i].magic == 0)
 			break;
 
 		if (check_guest_image(&gad.images[i], laddr[i])) {
@@ -257,7 +252,7 @@ void ic_loader(uint64_t sp[], uint64_t image_addr)
 			abort();
 		} else {
 			printf("%s: passed\n",
-				get_image_name(gad.images[i].macig));
+				get_image_name(gad.images[i].magic));
 		}
 	}
 	printf("Done\n");

@@ -49,7 +49,7 @@ int _IO_putc(int c, struct _IO_FILE *__fp);
 
 int putchar(int c)
 {
-	return _IO_putc(c, stdout);
+	return _IO_putc(c, NULL);
 }
 
 int putc(int c, FILE *stream)

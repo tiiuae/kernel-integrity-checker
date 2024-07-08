@@ -2,7 +2,7 @@
 set -e
 # calculate signatures over guest authenticated data, kernel image and device tree
 
-SIGN_VERSION=0x0400
+SIGN_VERSION=0x0301
 
 usage() {
 	echo "usage:"

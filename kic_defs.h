@@ -39,7 +39,7 @@ typedef struct {
 } guest_cert_t;
 
 typedef struct {
-	uint32_t macig;
+	uint32_t magic;
 	uint32_t flags;
 	uint32_t size;
 	uint32_t offset;
@@ -49,7 +49,7 @@ typedef struct {
 
 /* Guest Authenticated Data */
 typedef struct {
-	uint32_t macig;
+	uint32_t magic;
 	uint32_t version;
 	guest_cert_t cert;
 	kic_image_t images[KIC_IMAGE_COUNT];
