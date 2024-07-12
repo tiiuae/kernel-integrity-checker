@@ -57,6 +57,21 @@ add_hdr ()
 	fi
 }
 
+add_dummy_hdr ()
+{
+	printf "0: %.8x" 0 | xxd -r
+	printf "0: %.8x" 0 | xxd -r
+	printf "0: %.16x" 0 | xxd -r
+	printf "0: %.16x" 0 | xxd -r
+	printf "0: %.16x" 0 | xxd -r 
+	printf "0: %.16x" 0 | xxd -r
+	printf "0: %.16x" 0 | xxd -r 
+	printf "0: %.16x" 0 | xxd -r
+	printf "0: %.8x" 0x644d5241 | 
+		sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r
+	printf "0: %.8x" 0 | xxd -r
+}
+
 while getopts "h?p:g:k:d:D:i:I:o:c:" opt; do
 	case "$opt" in
 	h|\?)	-D "${DTB_FILE}" -d "$(DTB_ADDR)"
@@ -112,9 +127,11 @@ DTB_OFFSET=$(( KERNEL_LEN  + 4096))
 INIT_OFFSET=$(( DTB_OFFSET + DTB_LEN ))
 
 # start to buils output image
-echo -n "SIGN" > "$OUTFILE"
+#TMP_FILE=$(mktemp)
+TMP_FILE=testfile
+echo -n "SIGN" > "$TMP_FILE"
 printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
-	sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r >> "$OUTFILE"
+	sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r >> "$TMP_FILE"
 
 #add guest certificate
 
@@ -137,6 +154,11 @@ printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
 # CERT_MAX_LEN= sizof(guest_cert_t)
 CERT_MAX_LEN=$((4 + 4 + 4 + 4 + 80 + 80))
 
+add_dummy_hdr > "$OUTFILE"
+echo -n "SIGN" >> "$OUTFILE"
+printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
+	sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r >> "$OUTFILE"
+
 cat "$GUEST_CERT" >> "$OUTFILE"
 CERT_LEN=$(stat -c"%s" "$GUEST_CERT")
 
@@ -145,6 +167,7 @@ dd if=/dev/zero of="$OUTFILE" bs=$(("$CERT_MAX_LEN" - "$CERT_LEN" )) count=1 ofl
 if [ -n "$INITRD_FILE" ]; then
 	echo "INITRD::$(stat -c"%s" "$INITRD_FILE")"
 fi
+
 #add loader data
 add_hdr "KRNL" 0x00 0x1000 0 "$KERNEL" >> "$OUTFILE"
 add_hdr "DEVT" 0x10 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
@@ -167,6 +190,7 @@ PADS=$(( 4096 - LEN % 4096 ))
 dd if=/dev/zero of="$OUTFILE" bs=$PADS count=1 oflag=append conv=notrunc \
 	status=none
 # Guest Authenticated data page is ready
+
 
 cat "$KERNEL" >> "$OUTFILE"
 

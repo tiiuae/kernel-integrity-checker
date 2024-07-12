@@ -38,7 +38,81 @@ int allowed_memory(uint64_t begin, size_t size)
 	return (begin < disallowed_begin && end < disallowed_begin) ||
 		(begin > disallowed_end && end > disallowed_end);
 }
+typedef uint32_t u32;
+typedef uint8_t u8;
 
+typedef u32 phandle;
+
+struct list_head {
+	struct list_head *next, *prev;
+};
+struct fwnode_handle {
+	struct fwnode_handle *secondary;
+	const struct fwnode_operations *ops;
+	struct device *dev;
+	struct list_head suppliers;
+	struct list_head consumers;
+	u8 flags;
+};
+
+struct property {
+	char	*name;
+	int	length;
+	void	*value;
+	struct property *next;
+#if defined(CONFIG_OF_DYNAMIC) || defined(CONFIG_SPARC)
+	unsigned long _flags;
+#endif
+#if defined(CONFIG_OF_PROMTREE)
+	unsigned int unique_id;
+#endif
+#if defined(CONFIG_OF_KOBJ)
+	struct bin_attribute attr;
+#endif
+};
+
+struct device_node {
+	const char *name;
+	phandle phandle;
+	const char *full_name;
+	struct fwnode_handle fwnode;
+
+	struct	property *properties;
+	struct	property *deadprops;	/* removed properties */
+	struct	device_node *parent;
+	struct	device_node *child;
+	struct	device_node *sibling;
+#if defined(CONFIG_OF_KOBJ)
+	struct	kobject kobj;
+#endif
+	unsigned long _flags;
+	void	*data;
+#if defined(CONFIG_SPARC)
+	unsigned int unique_id;
+	struct of_irq_controller *irq_trans;
+#endif
+};
+
+#define of_prop_cmp(s1, s2)		strcmp((s1), (s2))
+
+struct property *of_find_property(const struct device_node *np,
+					   const char *name, int *lenp)
+{
+	struct property *pp;
+
+	if (!np)
+		return NULL;
+
+	for (pp = np->properties; pp; pp = pp->next) {
+		if (of_prop_cmp(pp->name, name) == 0) {
+			if (lenp)
+				*lenp = pp->length;
+			break;
+		}
+	}
+
+	return pp;
+}
 
 int do_ecdsa(const uint8_t *sign, const uint8_t *hash,
 	     const uint8_t *pub, size_t pub_size)
@@ -194,9 +268,13 @@ void ic_loader(uint64_t sp[], uint64_t image_addr)
 	gad_t gad;
 	uint32_t len;
 	uint64_t laddr[KIC_IMAGE_COUNT];
+	struct	property *prop;
 
-	printf("Integrity check loader started\n");
-
+	printf("Integrity check loader started %llx %llx %llx\n",sp[0],sp[1],sp[2]);
+	//korjaa crosvm, puukotettu versio ei taida tehdä dtb filua
+	//prop = of_find_property(sp[0], "kernel-address", 0);
+	//printf("kernel addr %s\n", prop->name);
+	//printf("kernel addr %x\n", prop->value);
 	set_heap(hyp_malloc_pool, sizeof(hyp_malloc_pool));
 	memcpy(&gad, (void *)image_addr, sizeof(gad));
 

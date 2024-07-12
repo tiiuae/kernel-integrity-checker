@@ -24,6 +24,18 @@
 
 #define KIC_LOAD_ADDR_TO_X0 (1<<4)
 #define KIC_LOAD_ARRD_FROM_X0 (1<<5)
+typedef struct {
+	uint32_t code0;		/* Executable code */
+	uint32_t code1;		/* Executable code */
+	uint64_t text_offset;	/* Image load offset, little endian */
+	uint64_t image_size;	/* Effective Image size, little endian */
+	uint64_t flags;		/* kernel flags, little endian */
+	uint64_t res2;		/* reserved */
+	uint64_t res3;		/* reserved */
+	uint64_t res4;		/* reserved */
+	uint32_t magic;		/* Magic number, little endian, "ARM\x64" */
+	uint32_t res5;		/* reserved (used for PE COFF offset) */
+} dummy_t;
 
 typedef struct {
 	uint32_t magic;
@@ -49,6 +61,7 @@ typedef struct {
 
 /* Guest Authenticated Data */
 typedef struct {
+	dummy_t hdr; /* crosvm requires that  ARM\x64  magic is in the place */
 	uint32_t magic;
 	uint32_t version;
 	guest_cert_t cert;
