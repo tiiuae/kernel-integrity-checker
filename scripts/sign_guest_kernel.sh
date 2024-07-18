@@ -170,7 +170,8 @@ fi
 
 #add loader data
 add_hdr "KRNL" 0x00 0x1000 0 "$KERNEL" >> "$OUTFILE"
-add_hdr "DEVT" 0x10 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
+add_hdr "DEVT" 0x20 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
+#add_hdr "DEVT" 0x00 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
 add_hdr "INRD" 0x00 $INIT_OFFSET "$INITRD_ADDR" "$INITRD_FILE" >> "$OUTFILE"
 
 # add guest id

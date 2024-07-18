@@ -6,7 +6,7 @@
 #define GAD_MAGIC 	0x4e474953
 #define KERNEL_MAGIC 	0x4c4e524b
 #define DTB_MAGIC 	0x54564544
-#define GAD_VERSION	0x0300
+#define GAD_VERSION	0x0301
 #define GUEST_ID_MAX_LEN 16
 #define SIGNATURE_MAX_LEN 80
 #define PUBKEY_MAX_LEN 80
@@ -55,7 +55,7 @@ typedef struct {
 	uint32_t flags;
 	uint32_t size;
 	uint32_t offset;
-	uint64_t load_addr;
+	uint64_t *load_addr;
 	uint8_t hash[HASH_LEN];
 } kic_image_t;
 

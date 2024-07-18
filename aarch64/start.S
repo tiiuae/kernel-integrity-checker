@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 
 //
 // Input
@@ -53,7 +54,7 @@ setzero:
 
 // Set up TCR_EL1
 // ---------------
-	mov x0, #0x1F // T0SZ=0b011111 Limits VA space to 32 bits
+	mov x0, #0x1c // T0SZ=0b11100 Limits VA space to 34 bits
 	orr x0, x0, #(0x1 << 8) // IGRN0=0b01 Walks to TTBR0 are Inner WB/WA
 	orr x0, x0, #(0x1 << 10) // OGRN0=0b01 Walks to TTBR0 are Outer WB/WA
 	orr x0, x0, #(0x3 << 12) // SH0=0b11 Inner Shareable
@@ -62,7 +63,7 @@ setzero:
 				// TG0=0b00 4KB granule for TTBR0
 				// A1=0 TTBR0 contains the ASID
 				// AS=0 8-bit ASID
-				// IPS=0 32-bit IPA space
+	orr x0, x0, #(0x1 << 32) // IPS=001 36-bit IPA space
 	msr TCR_EL1, x0
 
   	isb
@@ -76,62 +77,59 @@ setzero:
 // Generate L1 table
 	ldr x1, =l1_table
 	ldr x0, =TT_S1_TABLE
-	ldr x2, =l2_00000000
+	ldr x2, =l2_0000
 	orr x2, x0, x2
 	str x2, [x1] // VA 0x00000000
 
-	ldr x2, =l2_40000000
+	ldr x2, =l2_4000
 	orr x2, x0, x2
 	str x2, [x1, #8]  //0x40000000
 
-	ldr x2, =l2_80000000
+	ldr x2, =l2_8000
 	orr x2, x0, x2
 	str x2, [x1, #16] //0x80000000
 
+	ldr x2, =l2_C000
+	orr x2, x0, x2
+	str x2, [x1, #24] //0xC0000000
+
+	ldr x2, =l2_10000
+	orr x2, x0, x2
+	str x2, [x1, #32] //0x100000000
+
+	ldr x2, =l2_14000
+	orr x2, x0, x2
+	str x2, [x1, #40] //0x140000000
+
 // Generate L2 table for 00000000 - 3fffffff
-	ldr	x1, =l2_00000000
-	ldr	x2, =0x00000000  //phys address
-	mov 	x4, xzr
-	mov	x3, #0x200000
-l2loop1:
-	ldr	x0, =TT_S1_DEVICE_nGnRnE
-	orr	x0, x0, x2
-	str 	x0, [x1], #8
-	add	x2, x2, x3
-	add 	x4,x4,#1
-	cmp 	x4, #0x200
-	b.lo 	l2loop1
+	ldr x1, =l2_0000
+	ldr x2, =0x00000000  //phys address
+	bl create_l2_tbl
 
 // Generate L2  table for 40000000 - 7fffffff
-	ldr	x1, =l2_40000000
-	ldr	x2, =0x40000000  //phys address
-	mov 	x4, xzr
-	mov	x3, #0x200000
-l2loop:
-	ldr	x0, =TT_S1_NORMAL_WBWA
-	orr	x0, x0, #TT_S1_INNER_SHARED
-	orr	x0, x0, x2
-	str 	x0, [x1], #8
-	add	x2, x2, x3
-	add 	x4,x4,#1
-	cmp 	x4, #0x200
-	b.lo 	l2loop
+	ldr x1, =l2_4000
+	ldr x2, =0x40000000  //phys address
+	bl create_l2_tbl
 
 // Generate L2  table for 80000000 - bfffffff
-	ldr	x1, =l2_80000000
-	ldr	x2, =0x80000000  //phys address
-	mov 	x4, xzr
-	mov	x3, #0x200000
-l2loop2:
-	ldr	x0, =TT_S1_NORMAL_WBWA
-	orr	x0, x0, #TT_S1_INNER_SHARED
-	orr	x0, x0, x2
-	str 	x0, [x1], #8
-	add	x2, x2, x3
-	add 	x4,x4,#1
-	cmp 	x4, #0x200
-	b.lo 	l2loop2
+	ldr x1, =l2_8000
+	ldr x2, =0x80000000  //phys address
+	bl create_l2_tbl
 
+// Generate L2  table for C0000000 - ffffffff
+	ldr x1, =l2_C000
+	ldr x2, =0xC0000000  //phys address
+	bl create_l2_tbl
+
+// Generate L2  table for 100000000 - 13fffffff
+	ldr x1, =l2_10000
+	ldr x2, =0x100000000  //phys address
+	bl create_l2_tbl
+
+// Generate L2  table for 140000000 - 17fffffff
+	ldr x1, =l2_14000
+	ldr x2, =0x140000000  //phys address
+	bl create_l2_tbl
 	dsb sy
 
 // Enable MMU
@@ -163,7 +161,7 @@ l2loop2:
 //images has been checked, prepare the kernel start
 //flush images from cache
 	ldr x0, =0x80000000
-	ldr x1, =0x40000000
+	ldr x1, =0x100000000
 	bl __flush_dcache_area
 
 //flush ic_loader data from cache
@@ -214,11 +212,28 @@ l2loop2:
 	// jump to kernel
 	br lr
 
+create_l2_tbl:
+	mov 	x4, xzr
+	mov	x3, #0x200000
+l2loop:
+	ldr	x0, =TT_S1_NORMAL_WBWA
+	orr	x0, x0, #TT_S1_INNER_SHARED
+	orr	x0, x0, x2
+	str 	x0, [x1], #8
+	add	x2, x2, x3
+	add 	x4, x4, #1
+	cmp 	x4, #0x200
+	b.lo 	l2loop
+	ret
+
 .section xtables
 .align 12
 l1_table: .space 4096
-l2_00000000: .space 4096
-l2_40000000: .space 4096
-l2_80000000: .space 4096
+l2_0000: .space 4096
+l2_4000: .space 4096
+l2_8000: .space 4096
+l2_C000: .space 4096
+l2_10000: .space 4096
+l2_14000: .space 4096
 
 tables_end:
