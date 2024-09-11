@@ -5,12 +5,12 @@ export CROSS_COMPILE := $(BUILDTOOLS)/usr/bin/aarch64-linux-gnu-
 
 export CC := $(CROSS_COMPILE)gcc
 LD := $(CROSS_COMPILE)ld
-SUBDIRS := mbedtls aarch64 aarch64/stdlib
+SUBDIRS := mbedtls aarch64 aarch64/stdlib libftd
 
 OBJCOPY := $(CROSS_COMPILE)objcopy
 MBEDTLS_CFLAGS := '-O2 -DMBEDTLS_USER_CONFIG_FILE=\"$(PWD)/mbedconfig.h\"  -march=armv8-a --sysroot=$(BUILDTOOLS) --no-sysroot-suffix'
-LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L$(BUILDTOOLS)/usr/lib/gcc/aarch64-linux-gnu/11.4.0/
-LDLIBS :=  -lmbedcrypto -lstdlib -larch -lgcc
+LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L./libfdt -L$(BUILDTOOLS)/usr/lib/gcc/aarch64-linux-gnu/11.4.0/
+LDLIBS :=  -lmbedcrypto -lfdt  -lstdlib -larch -lgcc 
 vecho = @echo
 DIR := $(shell pwd)
 
@@ -44,6 +44,7 @@ libs:
 	make CFLAGS=$(MBEDTLS_CFLAGS) -C mbedtls lib
 	make CFLAGS='$(CFLAGS)' -C aarch64
 	make -C aarch64/stdlib
+	make CFLAGS='$(CFLAGS)' -C libfdt
 
 $(PROG): $(OBJS) | libs
 	$(vecho) [LD] $@

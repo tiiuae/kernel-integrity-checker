@@ -154,8 +154,8 @@ setzero:
 	bl __inval_dcache_area
 
 //do the job
-	ldp x0, x1, [sp, #(8 * 0)]
 	mov x0, sp
+	add x1, x0, #8
 	bl ic_loader
 
 //images has been checked, prepare the kernel start

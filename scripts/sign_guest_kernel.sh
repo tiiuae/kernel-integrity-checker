@@ -153,8 +153,8 @@ printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
 #
 # CERT_MAX_LEN= sizof(guest_cert_t)
 CERT_MAX_LEN=$((4 + 4 + 4 + 4 + 80 + 80))
-
-add_dummy_hdr > "$OUTFILE"
+dd if="$KERNEL" of="$OUTFILE" bs=64 count=1
+#add_dummy_hdr > "$OUTFILE"
 echo -n "SIGN" >> "$OUTFILE"
 printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
 	sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r >> "$OUTFILE"
@@ -170,8 +170,9 @@ fi
 
 #add loader data
 add_hdr "KRNL" 0x00 0x1000 0 "$KERNEL" >> "$OUTFILE"
-add_hdr "DEVT" 0x20 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
-#add_hdr "DEVT" 0x00 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
+add_hdr "xxxx" 0 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
+#add_hdr "DEVT" 0x20 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
+##add_hdr "DEVT" 0x00 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
 add_hdr "INRD" 0x00 $INIT_OFFSET "$INITRD_ADDR" "$INITRD_FILE" >> "$OUTFILE"
 
 # add guest id

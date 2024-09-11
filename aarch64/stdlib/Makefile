@@ -4,7 +4,7 @@ AR := $(CROSS_COMPILE)ar
 
 LIBNAME := libstdlib.a
 C_SOURCES := sanity.c string.c memset_chk.c memcpy_chk.c abort.c exit.c explicit_bzero.c
-C_SOURCES += printf.c putchar.c puts.c sscanf.c subr_prf.c
+C_SOURCES += printf.c putchar.c puts.c sscanf.c subr_prf.c memchr.c  strrchr.c strnlen.c
 AS_SOURCES = strcmp.S strlen.S memmove.S memcpy.S memset.S memcmp.S
 CFLAGS := -march=armv8-a -ffreestanding -I../
 
