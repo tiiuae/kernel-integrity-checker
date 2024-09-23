@@ -19,6 +19,8 @@
 extern const uint64_t *_start;
 extern const uint64_t *_stack_top;
 
+void __flush_dcache_area(void *addr, size_t sz);
+
 __attribute__((__section__(".heap"))) uint32_t hyp_malloc_pool[1024 * 4];
 __attribute__((__section__(".stack"))) uint32_t stack[1024 * 32];
 
@@ -259,6 +261,7 @@ void ic_loader(uint64_t *fdt, uint64_t *image_addr)
 					((uint8_t *) *image_addr) + img->offset,
 					laddr[i]);
 					memmove(laddr[i], ((uint8_t *) *image_addr) + img->offset, len);
+					__flush_dcache_area(laddr[i],len);
 			} else {
 				printf("Not allowed address %d %llx\n", i, laddr[i]);
 				abort();

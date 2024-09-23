@@ -59,20 +59,24 @@ add_hdr ()
 
 add_dummy_hdr ()
 {
+	local SIZE
+	SIZE=$1
+
 	printf "0: %.8x" 0 | xxd -r
 	printf "0: %.8x" 0 | xxd -r
 	printf "0: %.16x" 0 | xxd -r
+	printf "0: %.16x" $(( $SIZE)) | \
+		sed -E 's/0: (..)(..)(..)(..)(..)(..)(..)(..)/0:\8\7\6\5\4\3\2\1/'  | xxd -r
 	printf "0: %.16x" 0 | xxd -r
 	printf "0: %.16x" 0 | xxd -r 
 	printf "0: %.16x" 0 | xxd -r
 	printf "0: %.16x" 0 | xxd -r 
-	printf "0: %.16x" 0 | xxd -r
 	printf "0: %.8x" 0x644d5241 | 
 		sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r
 	printf "0: %.8x" 0 | xxd -r
 }
 
-while getopts "h?p:g:k:d:D:i:I:o:c:" opt; do
+while getopts "h?p:g:k:D:i:I:o:c:" opt; do
 	case "$opt" in
 	h|\?)	-D "${DTB_FILE}" -d "$(DTB_ADDR)"
 
@@ -84,8 +88,6 @@ while getopts "h?p:g:k:d:D:i:I:o:c:" opt; do
 	g)  GUESTID=$OPTARG
 	;;
 	k)  KERNEL=$OPTARG
-	;;
-	d)  DTB_ADDR=$OPTARG
 	;;
 	D)  DTB_FILE=$OPTARG
 	;;
@@ -106,7 +108,7 @@ echo "guest_id=$GUESTID"
 echo "guest cert"="$GUEST_CERT"
 echo "kernel=$KERNEL"
 echo "dtb file=$DTB_FILE"
-echo "dtb load address=$DTB_ADDR"
+
 
 echo ""
 
@@ -153,8 +155,8 @@ printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
 #
 # CERT_MAX_LEN= sizof(guest_cert_t)
 CERT_MAX_LEN=$((4 + 4 + 4 + 4 + 80 + 80))
-dd if="$KERNEL" of="$OUTFILE" bs=64 count=1
-#add_dummy_hdr > "$OUTFILE"
+
+add_dummy_hdr $KERNEL_LEN>  "$OUTFILE"
 echo -n "SIGN" >> "$OUTFILE"
 printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
 	sed -E 's/0: (..)(..)(..)(..)/0:\4\3\2\1/' | xxd -r >> "$OUTFILE"
@@ -170,8 +172,7 @@ fi
 
 #add loader data
 add_hdr "KRNL" 0x00 0x1000 0 "$KERNEL" >> "$OUTFILE"
-add_hdr "xxxx" 0 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
-#add_hdr "DEVT" 0x20 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
+add_hdr "DEVT" 0x20 $DTB_OFFSET 0 "$DTB_FILE" >> "$OUTFILE"
 ##add_hdr "DEVT" 0x00 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
 add_hdr "INRD" 0x00 $INIT_OFFSET "$INITRD_ADDR" "$INITRD_FILE" >> "$OUTFILE"
 
@@ -181,12 +182,9 @@ dd if=/dev/zero of=$OUTFILE bs=$(( 16 - "${#GUESTID}" )) count=1 oflag=append \
 	conv=notrunc status=none
 
 # add signature
-#echo -n "header hash:"
-#cat  "${OUTFILE}" > tmpfile
-#cat  "${OUTFILE}" | openssl dgst -sha256
 cat  "${OUTFILE}" | openssl dgst -sha256 -sign "$PRIV_KEY" >> "$OUTFILE"
 
-# add zeros so that size id 4096 bytes
+# add zeros so that the size  of GAD is 4096 bytes
 LEN=$(stat -c"%s" "$OUTFILE")
 PADS=$(( 4096 - LEN % 4096 ))
 dd if=/dev/zero of="$OUTFILE" bs=$PADS count=1 oflag=append conv=notrunc \

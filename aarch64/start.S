@@ -159,15 +159,6 @@ setzero:
 	bl ic_loader
 
 //images has been checked, prepare the kernel start
-//flush images from cache
-	ldr x0, =0x80000000
-	ldr x1, =0x100000000
-	bl __flush_dcache_area
-
-//flush ic_loader data from cache
-	ldr x0, =_start
-	ldr x1, =0x60000
-	bl __flush_dcache_area
 
 // disable MMU
 	mov x0, xzr

@@ -1,21 +1,20 @@
-BUILDTOOLS := /home/mt/work/pkvm-aarch64/buildtools
 
 export ARCH=arm64
+export BUILDTOOLS := /home/mt/work/pkvm-aarch64/buildtools
 export CROSS_COMPILE := $(BUILDTOOLS)/usr/bin/aarch64-linux-gnu-
-
 export CC := $(CROSS_COMPILE)gcc
-LD := $(CROSS_COMPILE)ld
-SUBDIRS := mbedtls aarch64 aarch64/stdlib libftd
 
+LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
+
 MBEDTLS_CFLAGS := '-O2 -DMBEDTLS_USER_CONFIG_FILE=\"$(PWD)/mbedconfig.h\"  -march=armv8-a --sysroot=$(BUILDTOOLS) --no-sysroot-suffix'
-LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L./libfdt -L$(BUILDTOOLS)/usr/lib/gcc/aarch64-linux-gnu/11.4.0/
-LDLIBS :=  -lmbedcrypto -lfdt  -lstdlib -larch -lgcc 
+LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L./libfdt -L$(BUILDTOOLS)/usr/lib/gcc/aarch64-linux-gnu/9.5.0/
+LDLIBS :=  -lmbedcrypto -lfdt -lstdlib -larch -lgcc 
 vecho = @echo
 DIR := $(shell pwd)
 
 OBJS := ic_loader.o heap.o
-CFLAGS := -march=armv8-a -Imbedtls/include -Iaarch64 -g -ffreestanding --sysroot=$(BUILDTOOLS) --no-sysroot-suffix
+CFLAGS := -march=armv8-a -Imbedtls/include -Iaarch64 -Ilibfdt  -g -ffreestanding --sysroot=$(BUILDTOOLS) --no-sysroot-suffix
 PROG := ic_loader
 
 GUEST_IMAGE_DIR ?= .
@@ -27,13 +26,9 @@ CERT_REQ_FILE ?= cert_req.crt
 CERT_FILE ?= cert.crt
 PRIV_KEY ?= $(KEYS_DIR)/sign_priv.pem
 PUB_KEY ?= $(KEYS_DIR)/sign_pub.txt
-
-
 GUEST_ID ?= "no"
-DTB_ADDR ?= 0x8fc00000
-DTB_FILE ?= guest.dtb
-TMP_FILE := $(shell mktemp)
 
+TMP_FILE := $(shell mktemp)
 
 $(PROG).hex: $(PROG).bin
 	cat $(PROG).bin | hexdump -ve '"0x%08X,"' > $(PROG).hex
@@ -66,7 +61,7 @@ $(CERT_FILE): | $(PUB_KEY)
 		sign_guest_cert
 
 root_pubkey.h:
-	make -f Makefile.customer -C dummy-CA ROOT_PUBKEY=$(TMP_FILE)  get_rootkey
+	make -f Makefile.customer -C dummy-CA ROOT_PUBKEY=$(TMP_FILE) get_rootkey
 	openssl ec -in $(TMP_FILE) -pubin -noout -text | \
 		$(SCRIPTS)/convert_to_h.py pub root_pubkey > root_pubkey.h
 	rm $(TMP_FILE)
@@ -76,14 +71,16 @@ sign_guest: | $(CERT_FILE) $(PRIV_KEY)
 		-p "$(PRIV_KEY)" \
 		-k "$(IMAGE)" \
 		-o "$(GUEST_IMAGE_DIR)"/$(notdir ${IMAGE}).sign \
-		-D "${DTB_FILE}" -d "$(DTB_ADDR)" \
+		-D "${DTB_FILE}" \
 		-g "$(GUEST_ID)" \
 		-c "$(CERT_FILE)"
+		@if [ -z "${DTB_FILE}" ]; then\
+			echo "If you want to use signed dtb-file use:"; \
+			echo "    make sign_guest DTB_FILE=<dtb-file>";\
+ 		fi
 
 $(PRIV_KEY) $(PUB_KEY):
 	make -C $(KEYS_DIR) all
-
-
 
 clean:
 	rm -f $(OBJS) root_pubkey.h $(PROG) $(PROG).hex $(PROG).bin
