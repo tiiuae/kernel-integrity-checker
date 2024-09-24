@@ -129,7 +129,6 @@ DTB_OFFSET=$(( KERNEL_LEN  + 4096))
 INIT_OFFSET=$(( DTB_OFFSET + DTB_LEN ))
 
 # start to buils output image
-#TMP_FILE=$(mktemp)
 TMP_FILE=testfile
 echo -n "SIGN" > "$TMP_FILE"
 printf "0: %.8x" $(( "$SIGN_VERSION" )) | \
@@ -173,7 +172,6 @@ fi
 #add loader data
 add_hdr "KRNL" 0x00 0x1000 0 "$KERNEL" >> "$OUTFILE"
 add_hdr "DEVT" 0x20 $DTB_OFFSET 0 "$DTB_FILE" >> "$OUTFILE"
-##add_hdr "DEVT" 0x00 $DTB_OFFSET "$DTB_ADDR" "$DTB_FILE" >> "$OUTFILE"
 add_hdr "INRD" 0x00 $INIT_OFFSET "$INITRD_ADDR" "$INITRD_FILE" >> "$OUTFILE"
 
 # add guest id

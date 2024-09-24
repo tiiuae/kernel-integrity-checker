@@ -1,20 +1,22 @@
 
 export ARCH=arm64
-export BUILDTOOLS := /home/mt/work/pkvm-aarch64/buildtools
+export BUILDTOOLS := $(PWD)/../pkvm-aarch64/buildtools
 export CROSS_COMPILE := $(BUILDTOOLS)/usr/bin/aarch64-linux-gnu-
 export CC := $(CROSS_COMPILE)gcc
 
 LD := $(CROSS_COMPILE)ld
 OBJCOPY := $(CROSS_COMPILE)objcopy
 
-MBEDTLS_CFLAGS := '-O2 -DMBEDTLS_USER_CONFIG_FILE=\"$(PWD)/mbedconfig.h\"  -march=armv8-a --sysroot=$(BUILDTOOLS) --no-sysroot-suffix'
+COMMON_CFLAGS := -march=armv8-a -g -ffreestanding --sysroot=$(BUILDTOOLS) --no-sysroot-suffix
+
+MBEDTLS_CFLAGS := '-O2 -DMBEDTLS_USER_CONFIG_FILE=\"$(PWD)/mbedconfig.h\" $(COMMON_CFLAGS)'
 LDFLAGS := -static -T ld.out -Lmbedtls/library -L./aarch64 -L./aarch64/stdlib -L./libfdt -L$(BUILDTOOLS)/usr/lib/gcc/aarch64-linux-gnu/9.5.0/
 LDLIBS :=  -lmbedcrypto -lfdt -lstdlib -larch -lgcc 
 vecho = @echo
 DIR := $(shell pwd)
 
 OBJS := ic_loader.o heap.o
-CFLAGS := -march=armv8-a -Imbedtls/include -Iaarch64 -Ilibfdt  -g -ffreestanding --sysroot=$(BUILDTOOLS) --no-sysroot-suffix
+CFLAGS := $(COMMON_CFLAGS) -Imbedtls/include -Iaarch64 -Ilibfdt 
 PROG := ic_loader
 
 GUEST_IMAGE_DIR ?= .
@@ -37,9 +39,9 @@ $(PROG).bin: $(PROG)
 	$(OBJCOPY) -O binary $(PROG) $(PROG).bin
 libs:
 	make CFLAGS=$(MBEDTLS_CFLAGS) -C mbedtls lib
-	make CFLAGS='$(CFLAGS)' -C aarch64
-	make -C aarch64/stdlib
-	make CFLAGS='$(CFLAGS)' -C libfdt
+	make CFLAGS='$(COMMON_CFLAGS)' -C aarch64
+	make CFLAGS='$(COMMON_CFLAGS)' -C aarch64/stdlib
+	make CFLAGS='$(COMMON_CFLAGS)' -C libfdt
 
 $(PROG): $(OBJS) | libs
 	$(vecho) [LD] $@
@@ -87,6 +89,7 @@ clean:
 	make -C mbedtls clean
 	make -C aarch64 clean
 	make -C aarch64/stdlib clean
+	make -C libfdt clean
 
 distclean: clean
 	rm -f cert.crt $(CERT_REQ_FILE) $(CERT_FILE)

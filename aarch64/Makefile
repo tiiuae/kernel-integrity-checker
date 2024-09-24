@@ -2,7 +2,6 @@ CC := $(CROSS_COMPILE)gcc
 AR := $(CROSS_COMPILE)ar
 
 OBJS := start.o cache.o vectors.o platform.o
-CFLAGS := -march=armv8-a -g -ffreestanding --sysroot=$(BUILDTOOLS) --no-sysroot-suffix
 
 LIBNAME = libarch.a
 
