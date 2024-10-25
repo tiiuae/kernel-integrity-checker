@@ -2,28 +2,25 @@
 #include <stdint.h>
 #include "psci.h"
 
-#define UART01x_FR_BUSY 0x008
-#define UART01x_FR 0x18 /* Flag register (Read only). */
+#define UART01x_FR_BUSY 0x40
+#define UART01x_FR 0x5 /* Flag register (Read only). */
 #define UART01x_DR 0x00 /* Data read or written from the interface. */
-#define UART01x_RSR 0x04 /* Receive status register (Read). */
 #define VIRT_UART  0x03f8
 #define string(x) #x
-#define read_reg(r)                                                            \
-	__extension__({                                                        \
-		uint64_t value;                                                \
-		__asm__ __volatile__("mrs	%0, " string(r)                \
-				     : "=r"(value));                           \
-		value;                                                         \
+#define read_reg(r)                           \
+	__extension__({                           \
+		uint64_t value;                       \
+		__asm__ __volatile__("mrs	%0, " string(r) \
+				     : "=r"(value));                \
+		value;                                      \
 	})
 
 int _IO_putc(int c, struct _IO_FILE *__fp)
 {
-	uint8_t *uart = (uint8_t *)VIRT_UART;
+	volatile uint8_t *uart = (uint8_t *)VIRT_UART;
 
-	while (*(uart + UART01x_FR) & UART01x_FR_BUSY);
-
+	while (!(*(uart + UART01x_FR) & UART01x_FR_BUSY));
 	*(uart + UART01x_DR) = c;
-	while (*(uart + UART01x_FR) & UART01x_FR_BUSY);
 
 	return 0;
 }
@@ -54,9 +51,14 @@ void systemoff(void)
 	call_hyp(PSCI_0_2_FN_SYSTEM_OFF, 0);
 }
 
-void el2_dbg(uint64_t x)
+int mmio_guard_map(uint64_t addr)
 {
-	call_hyp(0x00000000c6000009, x);
+	return call_hyp(0x00000000c6000007, addr);
+}
+
+int mmio_guard_unmap(uint64_t addr)
+{
+	return call_hyp(0x00000000c6000008, addr);
 }
 
 void dump_regs(uint64_t x, uint64_t sp[])

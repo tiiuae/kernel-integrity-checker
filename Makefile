@@ -72,7 +72,7 @@ sign_guest: | $(CERT_FILE) $(PRIV_KEY)
 	$(SCRIPTS)/sign_guest_kernel.sh \
 		-p "$(PRIV_KEY)" \
 		-k "$(IMAGE)" \
-		-o "$(GUEST_IMAGE_DIR)"/$(notdir ${IMAGE}).sign \
+		-o "$(GUEST_IMAGE_DIR)/$(notdir ${IMAGE}).sign" \
 		-D "${DTB_FILE}" \
 		-g "$(GUEST_ID)" \
 		-c "$(CERT_FILE)"
